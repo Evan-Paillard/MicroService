@@ -13,8 +13,26 @@ services:
     ports:
       - "27017:27017"
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  mi8:
+    build:
+      context: .
+      dockerfile: mi8/Dockerfile
+    ports:
+      - "50051:50051"
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+
   erasmumu:
-    build: ./erasmumu
+    build:
+      context: .
+      dockerfile: erasmumu/Dockerfile
     ports:
       - "3002:3002"
     environment:
@@ -23,12 +41,26 @@ services:
       - mongodb
 
   polytech:
-    build: ./polytech
+    build:
+      context: .
+      dockerfile: polytech/Dockerfile
     ports:
       - "3001:3001"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/polytech
       ERASMUMU_URL: http://erasmumu:3002
+      MI8_ADDRESS: mi8:50051
     depends_on:
       - postgres
       - erasmumu
+      - mi8
+
+  colporteur:
+    build:
+      context: .
+      dockerfile: colporteur/Dockerfile
+    environment:
+      MI8_ADDRESS: mi8:50051
+    depends_on:
+      - mi8
+    restart: "no"

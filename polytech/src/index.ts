@@ -2,12 +2,14 @@ import express from 'express'
 import pool from './db'
 import studentRoutes from './routes/students'
 import internshipRoutes from './routes/internships'
+import newsRoutes from './routes/news'
 
 const app = express()
 app.use(express.json())
 
 app.use('/student', studentRoutes)
 app.use('/internship', internshipRoutes)
+app.use('/news', newsRoutes)
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err)

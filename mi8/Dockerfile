@@ -1,8 +1,8 @@
 FROM node:20-alpine
 WORKDIR /app
-COPY erasmumu/package*.json ./erasmumu/
-WORKDIR /app/erasmumu
+COPY mi8/package*.json ./mi8/
+WORKDIR /app/mi8
 RUN npm install
-COPY erasmumu/ .
+COPY mi8/ .
 RUN npm run build
 CMD ["npm", "start"]

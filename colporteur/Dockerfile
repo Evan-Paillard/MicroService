@@ -1,9 +1,9 @@
 FROM node:20-alpine
 WORKDIR /app
-COPY polytech/package*.json ./polytech/
+COPY colporteur/package*.json ./colporteur/
 COPY mi8/proto/ ./mi8/proto/
-WORKDIR /app/polytech
+WORKDIR /app/colporteur
 RUN npm install
-COPY polytech/ .
+COPY colporteur/ .
 RUN npm run build
 CMD ["npm", "start"]
