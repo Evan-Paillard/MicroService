@@ -7,16 +7,28 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 5
 
   mongodb:
     image: mongo:7
     ports:
       - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
 
   mi8:
     build:
@@ -27,7 +39,8 @@ services:
     environment:
       REDIS_URL: redis://redis:6379
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   erasmumu:
     build:
@@ -38,7 +51,8 @@ services:
     environment:
       MONGO_URL: mongodb://mongodb:27017/erasmumu
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
 
   polytech:
     build:
@@ -51,9 +65,12 @@ services:
       ERASMUMU_URL: http://erasmumu:3002
       MI8_ADDRESS: mi8:50051
     depends_on:
-      - postgres
-      - erasmumu
-      - mi8
+      postgres:
+        condition: service_healthy
+      erasmumu:
+        condition: service_started
+      mi8:
+        condition: service_started
 
   colporteur:
     build:
@@ -62,5 +79,6 @@ services:
     environment:
       MI8_ADDRESS: mi8:50051
     depends_on:
-      - mi8
+      mi8:
+        condition: service_started
     restart: "no"

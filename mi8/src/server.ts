@@ -9,11 +9,11 @@ function toGrpcCityScore(cs: NonNullable<Awaited<ReturnType<NewsRepository['getC
   return {
     city: cs.city,
     country: cs.country,
-    quality_of_life: cs.qualityOfLife,
+    qualityOfLife: cs.qualityOfLife,
     safety: cs.safety,
     economy: cs.economy,
     culture: cs.culture,
-    last_updated: cs.lastUpdated,
+    lastUpdated: cs.lastUpdated,
   }
 }
 
