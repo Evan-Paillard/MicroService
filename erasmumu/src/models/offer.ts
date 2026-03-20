@@ -2,6 +2,7 @@ import { Schema, model } from 'mongoose'
 
 const offerSchema = new Schema({
   title: { type: String, required: true },
+  company: { type: String, required: false },
   link: { type: String, required: true },
   city: { type: String, required: true },
   domain: { type: String, required: true },

@@ -1,15 +1,19 @@
 import express from 'express'
+import cors from 'cors'
 import pool from './db'
 import studentRoutes from './routes/students'
 import internshipRoutes from './routes/internships'
 import newsRoutes from './routes/news'
+import offersRoutes from './routes/offers'
 
 const app = express()
+app.use(cors())
 app.use(express.json())
 
 app.use('/student', studentRoutes)
 app.use('/internship', internshipRoutes)
 app.use('/news', newsRoutes)
+app.use('/offers', offersRoutes)
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err)

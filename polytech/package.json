@@ -10,10 +10,12 @@
     "@grpc/grpc-js": "^1.9.14",
     "@grpc/proto-loader": "^0.7.10",
     "axios": "^1.6.2",
+    "cors": "^2.8.6",
     "express": "^4.18.2",
     "pg": "^8.11.3"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^4.17.21",
     "@types/node": "^20.10.0",
     "@types/pg": "^8.10.9",

@@ -72,6 +72,13 @@ services:
       mi8:
         condition: service_started
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - polytech
+
   colporteur:
     build:
       context: .

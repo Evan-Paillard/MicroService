@@ -4,15 +4,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
 const db_1 = __importDefault(require("./db"));
 const students_1 = __importDefault(require("./routes/students"));
 const internships_1 = __importDefault(require("./routes/internships"));
 const news_1 = __importDefault(require("./routes/news"));
+const offers_1 = __importDefault(require("./routes/offers"));
 const app = (0, express_1.default)();
+app.use((0, cors_1.default)());
 app.use(express_1.default.json());
 app.use('/student', students_1.default);
 app.use('/internship', internships_1.default);
 app.use('/news', news_1.default);
+app.use('/offers', offers_1.default);
 app.use((err, _req, res, _next) => {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });

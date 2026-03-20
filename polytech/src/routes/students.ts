@@ -1,5 +1,16 @@
 import { Router, Request, Response, NextFunction } from 'express'
+import axios from 'axios'
 import pool from '../db'
+import { enrichOffers } from './offers'
+
+const ERASMUMU_URL = process.env.ERASMUMU_URL || 'http://localhost:3002'
+
+const SORT_MAP: Record<string, string> = {
+  safety: 'safety',
+  economy: 'economy',
+  quality_of_life: 'qualityOfLife',
+  culture: 'culture',
+}
 
 const router = Router()
 
@@ -29,6 +40,42 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
     const result = await pool.query('SELECT * FROM students WHERE domain = $1', [domain])
     res.json(result.rows)
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/:id/recommended-offers', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 5
+    const sortBy = req.query.sort_by as string | undefined
+
+    const studentResult = await pool.query('SELECT * FROM students WHERE id = $1', [req.params.id])
+    if (studentResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' })
+    }
+    const student = studentResult.rows[0]
+
+    let offers: any[]
+    try {
+      const response = await axios.get(`${ERASMUMU_URL}/offer?domain=${student.domain}`)
+      offers = response.data
+    } catch {
+      return res.status(502).json({ error: 'Erasmumu service unavailable' })
+    }
+
+    let enriched = await enrichOffers(offers)
+
+    if (sortBy && SORT_MAP[sortBy]) {
+      const key = SORT_MAP[sortBy]
+      enriched = enriched.sort((a: any, b: any) => {
+        const aScore = a.scores?.[sortBy] ?? a.scores?.[key] ?? 0
+        const bScore = b.scores?.[sortBy] ?? b.scores?.[key] ?? 0
+        return bScore - aScore
+      })
+    }
+
+    res.json({ student, offers: enriched.slice(0, limit) })
   } catch (err) {
     next(err)
   }
