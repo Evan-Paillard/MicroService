@@ -7,7 +7,6 @@ export async function startConsumer() {
   const connection = await amqp.connect(RABBITMQ_URL)
   const channel = await connection.createChannel()
 
-  // 1. Listen for student.registered
   await channel.assertExchange('student.registered', 'fanout', { durable: true })
   const regQueue = await channel.assertQueue('laposte.student.registered', { durable: true })
   await channel.bindQueue(regQueue.queue, 'student.registered', '')
@@ -32,7 +31,6 @@ export async function startConsumer() {
     }
   })
 
-  // 2. Listen for offer.created (to send mock alerts)
   await channel.assertExchange('offer.created', 'fanout', { durable: true })
   const offerQueue = await channel.assertQueue('laposte.offer.created', { durable: true })
   await channel.bindQueue(offerQueue.queue, 'offer.created', '')
@@ -43,7 +41,6 @@ export async function startConsumer() {
       const offer = JSON.parse(msg.content.toString())
       const { title, domain, city } = offer
 
-      // Find subscribers matching domain and having enabled: true
       const subscribers = await Subscriber.find({ domain, enabled: true })
 
       for (const sub of subscribers) {

@@ -9,7 +9,6 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     const offer = new Offer(req.body)
     await offer.save()
 
-    // Publish offer.created event
     publishEvent('offer.created', {
       offerId: offer._id,
       title: offer.title,

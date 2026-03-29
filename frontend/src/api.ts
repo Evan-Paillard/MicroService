@@ -88,7 +88,6 @@ export async function applyToInternship(studentId: string, offerId: string): Pro
   return res.json()
 }
 
-// Notifications (Polytech)
 export async function getNotifications(studentId: string): Promise<Notification[]> {
   const res = await fetch(`${BASE}/students/${studentId}/notifications`)
   if (!res.ok) throw new Error('Failed to fetch notifications')
@@ -101,7 +100,6 @@ export async function markNotificationRead(id: string): Promise<Notification> {
   return res.json()
 }
 
-// La Poste Preferences
 export async function getSubscriber(studentId: string): Promise<Subscriber> {
   const res = await fetch(`${LAPOSTE_BASE}/subscribers/${studentId}`)
   if (!res.ok) throw new Error('Failed to fetch subscriber preferences')

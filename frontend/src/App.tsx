@@ -86,11 +86,10 @@ export function App() {
         {tab === 'preferences' && studentId && <PreferencesPage studentId={studentId} />}
       </main>
 
-      {/* Live news toasts */}
       <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50">
         {toasts.map(t => (
           <div key={t.id} className="bg-foreground text-background rounded-lg px-4 py-3 shadow-lg text-sm max-w-xs animate-in slide-in-from-right">
-            <span className="font-semibold">📰 Breaking news</span>
+            <span className="font-semibold">Breaking news</span>
             <p className="mt-1 opacity-90">{t.headline}</p>
           </div>
         ))}

@@ -35,7 +35,6 @@ export async function startConsumer(): Promise<void> {
       const offer = JSON.parse(msg.content.toString())
       const { offerId, title, city, domain, createdAt } = offer
 
-      // Find all students with matching domain
       const students = await pool.query(
         'SELECT id FROM students WHERE domain = $1',
         [domain]
@@ -61,7 +60,6 @@ export async function startConsumer(): Promise<void> {
     }
   })
 
-  // Subscribe to news.created → push via WebSocket
   await ch.assertExchange('news.created', 'fanout', { durable: true })
   const newsWsQueue = await ch.assertQueue('polytech.ws.news.created', { durable: false, autoDelete: true })
   await ch.bindQueue(newsWsQueue.queue, 'news.created', '')

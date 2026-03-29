@@ -30,7 +30,6 @@ async function startConsumer() {
   const connection = await amqp.connect(RABBITMQ_URL)
   const channel = await connection.createChannel()
 
-  // Subscribe to news.created
   await channel.assertExchange('news.created', 'fanout', { durable: true })
   const newsQueue = await channel.assertQueue('mi8.news.created', { durable: true })
   await channel.bindQueue(newsQueue.queue, 'news.created', '')
@@ -48,7 +47,6 @@ async function startConsumer() {
     }
   })
 
-  // Subscribe to offer.created
   await channel.assertExchange('offer.created', 'fanout', { durable: true })
   const offerQueue = await channel.assertQueue('mi8.offer.created', { durable: true })
   await channel.bindQueue(offerQueue.queue, 'offer.created', '')

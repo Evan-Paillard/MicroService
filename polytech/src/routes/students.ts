@@ -28,7 +28,6 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     )
     const student = result.rows[0]
 
-    // Publish student.registered event
     publishEvent('student.registered', {
       studentId: student.id,
       name: `${student.firstname} ${student.name}`,
