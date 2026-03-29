@@ -30,6 +30,16 @@ services:
       interval: 5s
       retries: 5
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      retries: 10
+
   mi8:
     build:
       context: .
@@ -38,8 +48,11 @@ services:
       - "50051:50051"
     environment:
       REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://rabbitmq:5672
     depends_on:
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   erasmumu:
@@ -50,8 +63,11 @@ services:
       - "3002:3002"
     environment:
       MONGO_URL: mongodb://mongodb:27017/erasmumu
+      RABBITMQ_URL: amqp://rabbitmq:5672
     depends_on:
       mongodb:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   polytech:
@@ -64,6 +80,8 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/polytech
       ERASMUMU_URL: http://erasmumu:3002
       MI8_ADDRESS: mi8:50051
+      RABBITMQ_URL: amqp://rabbitmq:5672
+      LAPOSTE_URL: http://laposte:3003
     depends_on:
       postgres:
         condition: service_healthy
@@ -71,6 +89,23 @@ services:
         condition: service_started
       mi8:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
+  laposte:
+    build:
+      context: .
+      dockerfile: laposte/Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      MONGO_URL: mongodb://mongodb:27017/laposte
+      RABBITMQ_URL: amqp://rabbitmq:5672
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
@@ -78,14 +113,15 @@ services:
       - "80:80"
     depends_on:
       - polytech
+      - laposte
 
   colporteur:
     build:
       context: .
       dockerfile: colporteur/Dockerfile
     environment:
-      MI8_ADDRESS: mi8:50051
+      RABBITMQ_URL: amqp://rabbitmq:5672
     depends_on:
-      mi8:
-        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     restart: "no"

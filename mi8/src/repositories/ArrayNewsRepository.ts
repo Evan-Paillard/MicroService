@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { News, CityScore, NewsRepository } from './NewsRepository'
+import { News, CityScore, CityStats, NewsRepository } from './NewsRepository'
 import { computeScoreDelta } from '../scoring'
 
 const BASE_SCORE = 1000
@@ -36,6 +36,7 @@ export class ArrayNewsRepository implements NewsRepository {
   ]
 
   private cityScores: Map<string, CityScore> = new Map()
+  private cityStatsMap: Map<string, CityStats> = new Map()
 
   async getLatestNews(limit: number): Promise<News[]> {
     return [...this.news]
@@ -65,6 +66,24 @@ export class ArrayNewsRepository implements NewsRepository {
     return [...this.cityScores.values()]
       .sort((a, b) => this.total(a) - this.total(b))
       .slice(0, limit)
+  }
+
+  async updateCityStats(city: string, domain: string, date: string): Promise<void> {
+    const key = city.toLowerCase()
+    const existing = this.cityStatsMap.get(key) ?? {
+      city,
+      totalOffers: 0,
+      offersByDomain: {},
+      lastOfferDate: '',
+    }
+    existing.totalOffers += 1
+    existing.offersByDomain[domain] = (existing.offersByDomain[domain] ?? 0) + 1
+    existing.lastOfferDate = date
+    this.cityStatsMap.set(key, existing)
+  }
+
+  async getCityStats(city: string): Promise<CityStats | null> {
+    return this.cityStatsMap.get(city.toLowerCase()) ?? null
   }
 
   private total(score: CityScore): number {

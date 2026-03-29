@@ -1,4 +1,5 @@
 const BASE = 'http://localhost:3001'
+const LAPOSTE_BASE = 'http://localhost:3003'
 
 export interface CityScore {
   safety: number
@@ -37,9 +38,22 @@ export interface Student {
   domain: string
 }
 
-export interface InternshipResult {
-  status: 'approved' | 'rejected'
+export interface Notification {
+  id: string
+  student_id: string
+  type: string
+  offer_id: string
   message: string
+  read: boolean
+  created_at: string
+}
+
+export interface Subscriber {
+  studentId: string
+  domain: string
+  channel: 'discord' | 'email'
+  contact: string
+  enabled: boolean
 }
 
 export async function getOffers(): Promise<Offer[]> {
@@ -64,7 +78,7 @@ export async function getRecommendedOffers(studentId: string, sortBy?: string): 
   return data.offers ?? data
 }
 
-export async function applyToInternship(studentId: string, offerId: string): Promise<InternshipResult> {
+export async function applyToInternship(studentId: string, offerId: string): Promise<{status: string, message: string}> {
   const res = await fetch(`${BASE}/internship`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -72,4 +86,39 @@ export async function applyToInternship(studentId: string, offerId: string): Pro
   })
   if (!res.ok) throw new Error('Failed to apply')
   return res.json()
+}
+
+// Notifications (Polytech)
+export async function getNotifications(studentId: string): Promise<Notification[]> {
+  const res = await fetch(`${BASE}/students/${studentId}/notifications`)
+  if (!res.ok) throw new Error('Failed to fetch notifications')
+  return res.json()
+}
+
+export async function markNotificationRead(id: string): Promise<Notification> {
+  const res = await fetch(`${BASE}/notifications/${id}/read`, { method: 'PUT' })
+  if (!res.ok) throw new Error('Failed to mark notification as read')
+  return res.json()
+}
+
+// La Poste Preferences
+export async function getSubscriber(studentId: string): Promise<Subscriber> {
+  const res = await fetch(`${LAPOSTE_BASE}/subscribers/${studentId}`)
+  if (!res.ok) throw new Error('Failed to fetch subscriber preferences')
+  return res.json()
+}
+
+export async function updateSubscriber(studentId: string, prefs: Partial<Subscriber>): Promise<Subscriber> {
+  const res = await fetch(`${LAPOSTE_BASE}/subscribers/${studentId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(prefs),
+  })
+  if (!res.ok) throw new Error('Failed to update preferences')
+  return res.json()
+}
+
+export async function unsubscribe(studentId: string): Promise<void> {
+  const res = await fetch(`${LAPOSTE_BASE}/subscribers/${studentId}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Failed to unsubscribe')
 }

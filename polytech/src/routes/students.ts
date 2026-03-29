@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express'
 import axios from 'axios'
 import pool from '../db'
 import { enrichOffers } from './offers'
+import { publishEvent } from '../consumer'
 
 const ERASMUMU_URL = process.env.ERASMUMU_URL || 'http://localhost:3002'
 
@@ -25,7 +26,17 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       'INSERT INTO students (firstname, name, domain) VALUES ($1, $2, $3) RETURNING *',
       [firstname, name, domain]
     )
-    res.status(201).json(result.rows[0])
+    const student = result.rows[0]
+
+    // Publish student.registered event
+    publishEvent('student.registered', {
+      studentId: student.id,
+      name: `${student.firstname} ${student.name}`,
+      domain: student.domain,
+      createdAt: new Date().toISOString()
+    }).catch(err => console.error('Failed to publish student.registered:', err))
+
+    res.status(201).json(student)
   } catch (err) {
     next(err)
   }

@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express'
 import { Offer } from '../models/offer'
+import { publishEvent } from '../publisher'
 
 const router = Router()
 
@@ -7,6 +8,16 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const offer = new Offer(req.body)
     await offer.save()
+
+    // Publish offer.created event
+    publishEvent('offer.created', {
+      offerId: offer._id,
+      title: offer.title,
+      city: offer.city,
+      domain: offer.domain,
+      createdAt: new Date().toISOString()
+    }).catch(err => console.error('Failed to publish offer.created:', err))
+
     res.status(201).json(offer)
   } catch (err) {
     next(err)

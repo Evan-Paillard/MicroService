@@ -1,6 +1,6 @@
 import Redis from 'ioredis'
 import { v4 as uuidv4 } from 'uuid'
-import { News, CityScore, NewsRepository } from './NewsRepository'
+import { News, CityScore, CityStats, NewsRepository } from './NewsRepository'
 import { computeScoreDelta } from '../scoring'
 
 const BASE_SCORE = 1000
@@ -60,6 +60,35 @@ export class RedisNewsRepository implements NewsRepository {
     const cityKeys = await this.redis.zrange('cities:ranking', 0, limit - 1)
     const scores = await Promise.all(cityKeys.map(city => this.getCityScore(city)))
     return scores.filter(Boolean) as CityScore[]
+  }
+
+  async updateCityStats(city: string, domain: string, date: string): Promise<void> {
+    const key = `citystats:${city.toLowerCase()}`
+    await this.redis.hincrby(key, 'total_offers', 1)
+    await this.redis.hincrby(key, `domain:${domain}`, 1)
+    await this.redis.hset(key, 'city', city)
+    await this.redis.hset(key, 'last_offer_date', date)
+    console.log(`Updated city stats for "${city}" (domain: ${domain})`)
+  }
+
+  async getCityStats(city: string): Promise<CityStats | null> {
+    const key = `citystats:${city.toLowerCase()}`
+    const data = await this.redis.hgetall(key)
+    if (!data || Object.keys(data).length === 0) return null
+
+    const offersByDomain: Record<string, number> = {}
+    for (const [k, v] of Object.entries(data)) {
+      if (k.startsWith('domain:')) {
+        offersByDomain[k.replace('domain:', '')] = parseInt(v)
+      }
+    }
+
+    return {
+      city: data.city || city,
+      totalOffers: parseInt(data.total_offers || '0'),
+      offersByDomain,
+      lastOfferDate: data.last_offer_date || '',
+    }
   }
 
   private async applyScoreDelta(

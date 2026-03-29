@@ -30,6 +30,13 @@ export interface CityScore {
   lastUpdated: string
 }
 
+export interface CityStats {
+  city: string
+  totalOffers: number
+  offersByDomain: Record<string, number>
+  lastOfferDate: string
+}
+
 export function getLatestNews(limit: number): Promise<News[]> {
   return new Promise((resolve, reject) => {
     client.getLatestNews({ limit }, (err: Error | null, response: any) => {
@@ -62,6 +69,15 @@ export function getTopCities(limit: number): Promise<CityScore[]> {
     client.getTopCities({ limit }, (err: Error | null, response: any) => {
       if (err) reject(err)
       else resolve(response.cities)
+    })
+  })
+}
+
+export function getCityStats(city: string): Promise<CityStats> {
+  return new Promise((resolve, reject) => {
+    client.getCityStats({ city }, (err: Error | null, response: any) => {
+      if (err) reject(err)
+      else resolve(response.cityStats)
     })
   })
 }

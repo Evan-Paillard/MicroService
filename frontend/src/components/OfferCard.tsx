@@ -25,7 +25,7 @@ export function OfferCard({ offer, studentId }: Props) {
     setStatus('loading')
     try {
       const result = await applyToInternship(studentId, offer._id)
-      setStatus(result.status)
+      setStatus(result.status as 'approved' | 'rejected')
       setMessage(result.message)
       if (storageKey) sessionStorage.setItem(storageKey, JSON.stringify({ status: result.status, message: result.message }))
     } catch {

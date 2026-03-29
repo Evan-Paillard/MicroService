@@ -8,6 +8,7 @@ service NewsService {
   rpc CreateNews(CreateNewsRequest) returns (NewsResponse);
   rpc GetCityScore(GetCityScoreRequest) returns (CityScoreResponse);
   rpc GetTopCities(GetTopCitiesRequest) returns (CityScoreListResponse);
+  rpc GetCityStats(GetCityStatsRequest) returns (CityStatsResponse);
 }
 
 message News {
@@ -70,4 +71,19 @@ message GetTopCitiesRequest {
 
 message CityScoreListResponse {
   repeated CityScore cities = 1;
+}
+
+message CityStats {
+  string city = 1;
+  int32 total_offers = 2;
+  map<string, int32> offers_by_domain = 3;
+  string last_offer_date = 4;
+}
+
+message GetCityStatsRequest {
+  string city = 1;
+}
+
+message CityStatsResponse {
+  CityStats city_stats = 1;
 }

@@ -1,13 +1,7 @@
-import * as grpc from '@grpc/grpc-js'
-import * as protoLoader from '@grpc/proto-loader'
-import path from 'path'
+import amqp from 'amqplib'
 
-const PROTO_PATH = path.join(__dirname, '..', '..', 'mi8', 'proto', 'news.proto')
-const MI8_ADDRESS = process.env.MI8_ADDRESS || 'localhost:50051'
-
-const packageDef = protoLoader.loadSync(PROTO_PATH, { keepCase: false })
-const proto = grpc.loadPackageDefinition(packageDef) as any
-const client = new proto.mi8.NewsService(MI8_ADDRESS, grpc.credentials.createInsecure())
+const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost:5672'
+const EXCHANGE = 'news.created'
 
 const sampleNews = [
   {
@@ -52,28 +46,22 @@ const sampleNews = [
   },
 ]
 
-function createNews(news: (typeof sampleNews)[0]): Promise<void> {
-  return new Promise((resolve, reject) => {
-    client.createNews(news, (err: Error | null, response: any) => {
-      if (err) {
-        reject(err)
-        return
-      }
-      console.log(`Created news: "${response.news.name}" in ${response.news.city}`)
-      resolve()
-    })
-  })
-}
-
 async function main() {
-  console.log(`Connecting to MI8 at ${MI8_ADDRESS}...`)
+  console.log(`Connecting to RabbitMQ at ${RABBITMQ_URL}...`)
+  const connection = await amqp.connect(RABBITMQ_URL)
+  const channel = await connection.createChannel()
+
+  await channel.assertExchange(EXCHANGE, 'fanout', { durable: true })
 
   for (const news of sampleNews) {
-    await createNews(news)
+    const message = Buffer.from(JSON.stringify(news))
+    channel.publish(EXCHANGE, '', message, { persistent: true })
+    console.log(`Published: "${news.name}" (${news.city})`)
   }
 
-  console.log('All news sent to MI8.')
-  client.close()
+  console.log('All news published.')
+  await channel.close()
+  await connection.close()
 }
 
 main().catch(err => {

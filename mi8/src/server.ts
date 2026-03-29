@@ -72,6 +72,26 @@ export function createGrpcServer(repository: NewsRepository): grpc.Server {
         callback(err)
       }
     },
+
+    getCityStats: async (call: any, callback: any) => {
+      try {
+        const stats = await repository.getCityStats(call.request.city)
+        if (!stats) {
+          callback({ code: grpc.status.NOT_FOUND, message: 'No stats for city' })
+          return
+        }
+        callback(null, {
+          cityStats: {
+            city: stats.city,
+            totalOffers: stats.totalOffers,
+            offersByDomain: stats.offersByDomain,
+            lastOfferDate: stats.lastOfferDate,
+          },
+        })
+      } catch (err) {
+        callback(err)
+      }
+    },
   })
 
   return server
