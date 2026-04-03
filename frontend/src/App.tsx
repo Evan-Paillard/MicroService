@@ -36,23 +36,36 @@ export function App() {
   useEffect(() => { sortByRef.current = sortBy }, [sortBy])
 
   useEffect(() => {
-    const ws = new WebSocket(WS_URL)
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data)
-        if (msg.type === 'offer.created' && studentRef.current) {
-          getRecommendedOffers(studentRef.current.id, sortByRef.current)
-            .then(setOffers)
-            .catch(() => {})
-        }
-        if (msg.type === 'news.created') {
-          const id: number = ++toastId.current
-          setToasts((t: Toast[]) => [...t, { id, headline: msg.news.name as string }])
-          setTimeout(() => setToasts((t: Toast[]) => t.filter((x: Toast) => x.id !== id)), 5000)
-        }
-      } catch {}
+    let ws: WebSocket
+    let reconnectTimeout: ReturnType<typeof setTimeout>
+
+    function connect() {
+      ws = new WebSocket(WS_URL)
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data)
+          if (msg.type === 'offer.created' && studentRef.current) {
+            getRecommendedOffers(studentRef.current.id, sortByRef.current)
+              .then(setOffers)
+              .catch(() => {})
+          }
+          if (msg.type === 'news.created') {
+            const id: number = ++toastId.current
+            setToasts((t: Toast[]) => [...t, { id, headline: msg.news.name as string }])
+            setTimeout(() => setToasts((t: Toast[]) => t.filter((x: Toast) => x.id !== id)), 5000)
+          }
+        } catch {}
+      }
+      ws.onclose = () => {
+        reconnectTimeout = setTimeout(connect, 3000)
+      }
     }
-    return () => ws.close()
+
+    connect()
+    return () => {
+      clearTimeout(reconnectTimeout)
+      ws.close()
+    }
   }, [])
 
   useEffect(() => {
