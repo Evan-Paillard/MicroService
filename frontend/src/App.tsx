@@ -3,17 +3,31 @@ import { OffersPage } from '@/pages/OffersPage'
 import { StudentPage } from '@/pages/StudentPage'
 import { NotificationsPage } from '@/pages/NotificationsPage'
 import { PreferencesPage } from '@/pages/PreferencesPage'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Separator } from '@/components/ui/separator'
+import { Briefcase, Bell, Settings, User, Newspaper, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { getRecommendedOffers, type Student, type Offer } from '@/api'
 
 const WS_URL = 'ws://localhost:3001'
 
 interface Toast { id: number; headline: string }
 
-type Tab = 'offers' | 'student' | 'notifications' | 'preferences'
+function loadStudentFromStorage(): Student | null {
+  try {
+    const raw = localStorage.getItem('polymove_student')
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
 
 export function App() {
-  const [tab, setTab] = useState<Tab>('offers')
-  const [studentId, setStudentId] = useState<string | null>(null)
+  const [tab, setTab] = useState('offers')
+  const [student, setStudent] = useState<Student | null>(loadStudentFromStorage)
+  const [offers, setOffers] = useState<Offer[]>([])
+  const [sortBy, setSortBy] = useState('safety')
+  const [loadingOffers, setLoadingOffers] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
   const toastId = useRef(0)
 
@@ -22,75 +36,144 @@ export function App() {
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data)
+        if (msg.type === 'offer.created' && student) {
+          getRecommendedOffers(student.id, sortBy)
+            .then(setOffers)
+            .catch(() => {})
+        }
         if (msg.type === 'news.created') {
-          const id = ++toastId.current
-          setToasts(t => [...t, { id, headline: msg.news.name }])
-          setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 5000)
+          const id: number = ++toastId.current
+          setToasts((t: Toast[]) => [...t, { id, headline: msg.news.name as string }])
+          setTimeout(() => setToasts((t: Toast[]) => t.filter((x: Toast) => x.id !== id)), 5000)
         }
       } catch {}
     }
     return () => ws.close()
   }, [])
 
+  useEffect(() => {
+    if (!student) return
+    setLoadingOffers(true)
+    getRecommendedOffers(student.id, sortBy)
+      .then(setOffers)
+      .catch(() => setOffers([]))
+      .finally(() => setLoadingOffers(false))
+  }, [student?.id, sortBy])
+
+  async function handleLogin(s: Student) {
+    setStudent(s)
+    localStorage.setItem('polymove_student', JSON.stringify(s))
+    setTab('dashboard')
+    setLoadingOffers(true)
+    try {
+      const fetched = await getRecommendedOffers(s.id, sortBy)
+      setOffers(fetched)
+    } catch {
+      setOffers([])
+    } finally {
+      setLoadingOffers(false)
+    }
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('polymove_student')
+    setStudent(null)
+    setOffers([])
+    setTab('offers')
+  }
+
+  function handleSortChange(value: string) {
+    setSortBy(value)
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
-          <h1 className="text-lg font-bold">Polymove</h1>
-          <nav className="flex gap-1 sm:gap-2">
-            <Button
-              variant={tab === 'offers' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setTab('offers')}
-            >
-              Offers
-            </Button>
-            <Button
-              variant={tab === 'student' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setTab('student')}
-            >
-              {studentId ? 'Dashboard' : 'Login'}
-            </Button>
-            {studentId && (
-              <>
-                <Button
-                  variant={tab === 'notifications' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setTab('notifications')}
-                >
-                  Notifications
-                </Button>
-                <Button
-                  variant={tab === 'preferences' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setTab('preferences')}
-                >
-                  Settings
-                </Button>
-              </>
-            )}
-          </nav>
-          {studentId && (
-            <span className="ml-auto text-xs text-muted-foreground hidden sm:inline">
-              ID: <span className="font-mono">{studentId.slice(0, 8)}…</span>
-            </span>
+      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <Briefcase className="h-4 w-4" />
+            </div>
+            <span className="text-lg font-bold tracking-tight">Polymove</span>
+          </div>
+
+          {student && (
+            <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+              <User className="h-3.5 w-3.5" />
+              <span>{student.firstname} {student.name}</span>
+              <Button variant="ghost" size="sm" onClick={handleLogout} className="h-7 px-2 text-xs">
+                <LogOut className="h-3.5 w-3.5 mr-1" />
+                Logout
+              </Button>
+            </div>
           )}
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6">
-        {tab === 'offers' && <OffersPage studentId={studentId} />}
-        {tab === 'student' && <StudentPage onStudentLogin={setStudentId} />}
-        {tab === 'notifications' && studentId && <NotificationsPage studentId={studentId} />}
-        {tab === 'preferences' && studentId && <PreferencesPage studentId={studentId} />}
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="mb-2">
+            <TabsTrigger value="offers" className="flex items-center gap-1.5">
+              <Briefcase className="h-3.5 w-3.5" />
+              Offers
+            </TabsTrigger>
+            <TabsTrigger value="dashboard" className="flex items-center gap-1.5">
+              <User className="h-3.5 w-3.5" />
+              {student ? 'Dashboard' : 'Login'}
+            </TabsTrigger>
+            {student && (
+              <>
+                <TabsTrigger value="notifications" className="flex items-center gap-1.5">
+                  <Bell className="h-3.5 w-3.5" />
+                  Notifications
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="flex items-center gap-1.5">
+                  <Settings className="h-3.5 w-3.5" />
+                  Settings
+                </TabsTrigger>
+              </>
+            )}
+          </TabsList>
+
+          <Separator className="mb-6" />
+
+          <TabsContent value="offers">
+            <OffersPage studentId={student?.id ?? null} />
+          </TabsContent>
+          <TabsContent value="dashboard">
+            <StudentPage
+              onStudentLogin={handleLogin}
+              student={student}
+              offers={offers}
+              sortBy={sortBy}
+              loadingOffers={loadingOffers}
+              onSortChange={handleSortChange}
+            />
+          </TabsContent>
+          {student && (
+            <>
+              <TabsContent value="notifications">
+                <NotificationsPage studentId={student.id} />
+              </TabsContent>
+              <TabsContent value="settings">
+                <PreferencesPage studentId={student.id} />
+              </TabsContent>
+            </>
+          )}
+        </Tabs>
       </main>
 
       <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50">
         {toasts.map(t => (
-          <div key={t.id} className="bg-foreground text-background rounded-lg px-4 py-3 shadow-lg text-sm max-w-xs animate-in slide-in-from-right">
-            <span className="font-semibold">Breaking news</span>
-            <p className="mt-1 opacity-90">{t.headline}</p>
+          <div
+            key={t.id}
+            className="flex items-start gap-3 bg-foreground text-background rounded-lg px-4 py-3 shadow-lg max-w-xs animate-in slide-in-from-right"
+          >
+            <Newspaper className="h-4 w-4 mt-0.5 shrink-0 opacity-70" />
+            <div>
+              <p className="text-xs font-semibold opacity-70 uppercase tracking-wide">Breaking news</p>
+              <p className="text-sm mt-0.5">{t.headline}</p>
+            </div>
           </div>
         ))}
       </div>

@@ -124,4 +124,6 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mi8:
+        condition: service_started
     restart: "no"

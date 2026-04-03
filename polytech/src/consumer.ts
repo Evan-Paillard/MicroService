@@ -52,6 +52,13 @@ export async function startConsumer(): Promise<void> {
         )
       }
 
+      const payload = JSON.stringify({ type: 'offer.created', offer })
+      for (const client of wsClients) {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(payload)
+        }
+      }
+
       console.log(`[offer.created] Created ${students.rowCount} notification(s) for domain "${domain}"`)
       ch.ack(msg)
     } catch (err) {
