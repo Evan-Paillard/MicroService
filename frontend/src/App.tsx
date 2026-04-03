@@ -30,14 +30,18 @@ export function App() {
   const [loadingOffers, setLoadingOffers] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
   const toastId = useRef(0)
+  const studentRef = useRef(student)
+  const sortByRef = useRef(sortBy)
+  useEffect(() => { studentRef.current = student }, [student])
+  useEffect(() => { sortByRef.current = sortBy }, [sortBy])
 
   useEffect(() => {
     const ws = new WebSocket(WS_URL)
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data)
-        if (msg.type === 'offer.created' && student) {
-          getRecommendedOffers(student.id, sortBy)
+        if (msg.type === 'offer.created' && studentRef.current) {
+          getRecommendedOffers(studentRef.current.id, sortByRef.current)
             .then(setOffers)
             .catch(() => {})
         }
